@@ -36,5 +36,5 @@ func main() {
 	)
 
 	slog.Info(fmt.Sprintf("Starting server on [::]:%d", config.AppConfig.Server.Port))
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.AppConfig.Server.Port)))
 }
