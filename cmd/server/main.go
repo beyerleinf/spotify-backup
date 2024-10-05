@@ -47,7 +47,7 @@ func main() {
 
 	slog.Info("Connected to database")
 
-	healthHandler := handler.NewHealthHandler()
+	healthHandler := handler.NewHealthHandler(client)
 
 	e := echo.New()
 	e.HideBanner = true
