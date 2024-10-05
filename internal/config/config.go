@@ -4,26 +4,27 @@ import (
 	logger "beyerleinf/spotify-backup/pkg/log"
 	"fmt"
 	goslog "log/slog"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
+	Server   ServerConfig   `mapstructure:"server" env:"SERVER"`
+	Database DatabaseConfig `mapstructure:"database" env:"DB"`
 }
 
 type ServerConfig struct {
-	Port     int
-	LogLevel goslog.Level
+	Port     int          `mapstructure:"port" env:"PORT"`
+	LogLevel goslog.Level `mapstructure:"loglevel" env:"LOGLEVEL"`
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	DBName   string
+	Host     string `mapstructure:"host" env:"HOST"`
+	Port     int    `mapstructure:"port" env:"PORT"`
+	Username string `mapstructure:"username" env:"USERNAME"`
+	Password string `mapstructure:"password" env:"PASSWORD"`
+	DBName   string `mapstructure:"db_name" env:"NAME"`
 }
 
 var AppConfig Config
@@ -36,7 +37,17 @@ func LoadConfig() error {
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config")
 
+	viper.SetEnvPrefix("app")
 	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.loglevel", 0)
+	viper.SetDefault("database.host", "localhost")
+	viper.SetDefault("database.port", 5432)
+	viper.SetDefault("database.username", "SpotifyBackup")
+	viper.SetDefault("database.password", "secret")
+	viper.SetDefault("database.db_name", "SpotifyBackup")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -46,25 +57,12 @@ func LoadConfig() error {
 		}
 	}
 
-	slog.Trace("Read config successfully")
-
 	err := viper.Unmarshal(&AppConfig)
 	if err != nil {
 		return fmt.Errorf("unable to decode into struct: %w", err)
 	}
 
-	setDefaults()
+	slog.Trace("Loaded config", "config", AppConfig)
 
 	return nil
-}
-
-func setDefaults() {
-	if AppConfig.Server.Port == 0 {
-		AppConfig.Server.Port = 8080
-	}
-
-	if AppConfig.Database.Port == 0 {
-		AppConfig.Database.Port = 5432 // Default PostgreSQL port
-	}
-
 }
