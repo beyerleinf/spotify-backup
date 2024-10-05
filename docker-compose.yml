@@ -1,0 +1,6 @@
+name: "spotify-backup"
+services:
+  db:
+    image: postgres:17.0
+    ports:
+      - "5432:5432"
