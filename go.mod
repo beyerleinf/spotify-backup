@@ -5,6 +5,8 @@ go 1.23.0
 require (
 	entgo.io/ent v0.14.1
 	github.com/labstack/echo/v4 v4.12.0
+	github.com/lib/pq v1.10.9
+	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/spf13/viper v1.19.0
 )
 

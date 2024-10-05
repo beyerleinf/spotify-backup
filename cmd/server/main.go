@@ -1,14 +1,17 @@
 package main
 
 import (
+	"beyerleinf/spotify-backup/ent"
 	"beyerleinf/spotify-backup/internal/api/handler"
 	"beyerleinf/spotify-backup/internal/api/router"
 	"beyerleinf/spotify-backup/internal/config"
 	logger "beyerleinf/spotify-backup/pkg/log"
+	"context"
 	"fmt"
 	"log"
 
 	"github.com/labstack/echo/v4"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -21,6 +24,28 @@ func main() {
 	}
 
 	slog.SetLogLevel(config.AppConfig.Server.LogLevel)
+
+	dburl := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
+		config.AppConfig.Database.Host,
+		config.AppConfig.Database.Port,
+		config.AppConfig.Database.Username,
+		config.AppConfig.Database.DBName,
+		config.AppConfig.Database.Password,
+	)
+
+	client, err := ent.Open("postgres", dburl)
+	if err != nil {
+		slog.Fatal("Failed opening connection to postgres", "err", err)
+		panic(err)
+	}
+	defer client.Close()
+
+	if err := client.Schema.Create(context.Background()); err != nil {
+		slog.Fatal("Failed creating schema resources", "err", err)
+		panic(err)
+	}
+
+	slog.Info("Connected to database")
 
 	healthHandler := handler.NewHealthHandler()
 
