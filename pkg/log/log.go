@@ -80,6 +80,7 @@ func (l *Logger) Verbose(msg string, args ...any) {
 	l.slogger.Log(ctx, LevelVerbose, msg, args...)
 }
 
+// TODO fix issue with trace logging after config was loaded
 func (l *Logger) Trace(msg string, args ...any) {
 	ctx := context.Background()
 	l.slogger.Log(ctx, LevelTrace, msg, args...)
@@ -106,11 +107,13 @@ func GetEchoLogger() echo.MiddlewareFunc {
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
 			if v.Error == nil {
 				logger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
+					slog.String("method", v.Method),
 					slog.String("uri", v.URI),
 					slog.Int("status", v.Status),
 				)
 			} else {
 				logger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
+					slog.String("method", v.Method),
 					slog.String("uri", v.URI),
 					slog.Int("status", v.Status),
 					slog.String("err", v.Error.Error()),
