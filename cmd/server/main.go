@@ -5,12 +5,18 @@ import (
 	"beyerleinf/spotify-backup/internal/api/handler"
 	"beyerleinf/spotify-backup/internal/api/router"
 	"beyerleinf/spotify-backup/internal/config"
+	"beyerleinf/spotify-backup/internal/ui"
+	uiHandler "beyerleinf/spotify-backup/internal/ui/handler"
+	uiRouter "beyerleinf/spotify-backup/internal/ui/router"
+	uiTmpl "beyerleinf/spotify-backup/internal/ui/template"
 	logger "beyerleinf/spotify-backup/pkg/log"
+	"beyerleinf/spotify-backup/pkg/service/spotify"
 	"context"
 	"fmt"
 	"log"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
 )
 
@@ -25,7 +31,7 @@ func main() {
 
 	slog.SetLogLevel(config.AppConfig.Server.LogLevel)
 
-	dburl := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
+	dbUrl := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
 		config.AppConfig.Database.Host,
 		config.AppConfig.Database.Port,
 		config.AppConfig.Database.Username,
@@ -33,7 +39,7 @@ func main() {
 		config.AppConfig.Database.Password,
 	)
 
-	client, err := ent.Open("postgres", dburl)
+	client, err := ent.Open("postgres", dbUrl)
 	if err != nil {
 		slog.Fatal("Failed opening connection to postgres", "err", err)
 		panic(err)
@@ -53,11 +59,29 @@ func main() {
 	e.HideBanner = true
 	e.HidePort = true
 	e.Use(logger.GetEchoLogger())
+	e.Use(middleware.Recover())
 
-	api := e.Group("/api")
+	apiBase := e.Group("/api")
+	uiBase := e.Group("/ui")
 
-	router.SetupRoutes(api,
+	router.SetupRoutes(apiBase,
 		router.HealthRoutes(healthHandler),
+	)
+
+	renderer, err := uiTmpl.NewRenderer(ui.PublicFS)
+	if err != nil {
+		slog.Fatal("Failed to initialize renderer", "err", err)
+	}
+
+	e.Renderer = renderer
+	e.StaticFS("/", ui.StaticFS)
+
+	spotifyService := spotify.New(client)
+
+	spotifyHandler := uiHandler.NewSpotifyHandler(spotifyService)
+
+	router.SetupRoutes(uiBase,
+		uiRouter.SpotifyRoutes(spotifyHandler),
 	)
 
 	slog.Info(fmt.Sprintf("Starting server on [::]:%d", config.AppConfig.Server.Port))
