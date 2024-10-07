@@ -25,3 +25,5 @@ go.work.sum
 .env
 
 config.yml
+
+node_modules

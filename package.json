@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@catppuccin/tailwindcss": "^0.1.6",
+    "tailwindcss": "^3.4.13"
+  },
+  "scripts": {
+    "dev:css": "tailwindcss -c ./tailwind.config.js -o ./internal/ui/public/assets/css/tailwind.css --watch --minify",
+    "css": "tailwindcss -c ./tailwind.config.js -o ./internal/ui/public/assets/css/tailwind.css --minify"
+  }
+}
