@@ -10,8 +10,10 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server" env:"SERVER"`
-	Database DatabaseConfig `mapstructure:"database" env:"DB"`
+	Server        ServerConfig   `mapstructure:"server" env:"SERVER"`
+	Database      DatabaseConfig `mapstructure:"database" env:"DB"`
+	Spotify       SpotifyConfig  `mapstructure:"spotify" env:"SPOTIFY"`
+	EncryptionKey string         `mapstructure:"encryption_key" env:"ENCRYPTION_KEY"`
 }
 
 type ServerConfig struct {
@@ -25,6 +27,12 @@ type DatabaseConfig struct {
 	Username string `mapstructure:"username" env:"USERNAME"`
 	Password string `mapstructure:"password" env:"PASSWORD"`
 	DBName   string `mapstructure:"db_name" env:"NAME"`
+}
+
+type SpotifyConfig struct {
+	ClientId     string `mapstructure:"client_id" env:"CLIENT_ID"`
+	ClientSecret string `mapstructure:"client_secret" env:"CLIENT_SECRET"`
+	RedirectUri  string `mapstructure:"redirect_uri" env:"REDIRECT_URI"`
 }
 
 var AppConfig Config
