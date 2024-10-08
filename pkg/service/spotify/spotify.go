@@ -3,13 +3,12 @@ package spotify
 import (
 	"beyerleinf/spotify-backup/ent"
 	"beyerleinf/spotify-backup/internal/config"
+	http_utils "beyerleinf/spotify-backup/pkg/http"
 	logger "beyerleinf/spotify-backup/pkg/log"
 	"beyerleinf/spotify-backup/pkg/models"
 	util "beyerleinf/spotify-backup/pkg/util"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 )
 
 type SpotifyService struct {
@@ -31,38 +30,21 @@ func New(db *ent.Client) *SpotifyService {
 func (s *SpotifyService) GetUserProfile() (models.SpotifyUserProfile, error) {
 	token, err := s.GetAccessToken()
 	if err != nil {
-		// TODO we are logging this twice, here and where the service is used. Do we need to log here?
-		s.slogger.Error("Failed to get access token", "err", err)
 		return models.SpotifyUserProfile{}, err
 	}
 
-	url := "https://api.spotify.com/v1/me"
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		s.slogger.Error("Failed to construct user profile request", "err", err)
-		return models.SpotifyUserProfile{}, err
+	headers := map[string][]string{
+		"Authorization": {fmt.Sprintf("Bearer %s", token)},
 	}
 
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
-
-	res, err := http.DefaultClient.Do(req)
+	data, _, err := http_utils.Get("https://api.spotify.com/v1/me", headers)
 	if err != nil {
-		s.slogger.Error("Failed to get user profile", "err", err)
-		return models.SpotifyUserProfile{}, err
-	}
-
-	defer res.Body.Close()
-
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.slogger.Error("Failed to read response data", "err", err)
 		return models.SpotifyUserProfile{}, err
 	}
 
 	var profile models.SpotifyUserProfile
 	err = json.Unmarshal(data, &profile)
 	if err != nil {
-		s.slogger.Error("Failed to unmarshal response", "err", err)
 		return models.SpotifyUserProfile{}, err
 	}
 

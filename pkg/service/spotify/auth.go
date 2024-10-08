@@ -3,6 +3,7 @@ package spotify
 import (
 	"beyerleinf/spotify-backup/internal/config"
 	"beyerleinf/spotify-backup/internal/global"
+	http_utils "beyerleinf/spotify-backup/pkg/http"
 	"beyerleinf/spotify-backup/pkg/models"
 	"crypto/aes"
 	"crypto/cipher"
@@ -34,7 +35,6 @@ func (s *SpotifyService) GetAuthUrl() string {
 	)
 }
 
-// TODO create http api to make this nicer and less repetitive
 func (s *SpotifyService) HandleAuthCallback(code string, state string) error {
 	if state != s.state {
 		return fmt.Errorf("state mismatch")
@@ -45,35 +45,20 @@ func (s *SpotifyService) HandleAuthCallback(code string, state string) error {
 	form.Add("code", code)
 	form.Add("redirect_uri", s.redirectUri)
 
-	req, err := http.NewRequest("POST", "https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()))
-	if err != nil {
-		s.slogger.Error("Failed to construct user profile request", "err", err)
-		return err
-	}
-
 	clientIdAndSecret := fmt.Sprintf("%s:%s", config.AppConfig.Spotify.ClientId, config.AppConfig.Spotify.ClientSecret)
 	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
 
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", authHeaderValue))
+	headers := map[string][]string{
+		"Authorization": {fmt.Sprintf("Basic %s", authHeaderValue)},
+	}
 
-	res, err := http.DefaultClient.Do(req)
+	data, status, err := http_utils.PostForm("https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
 	if err != nil {
-		s.slogger.Error("Failed to get user profile", "err", err)
 		return err
 	}
 
-	defer res.Body.Close()
-
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.slogger.Error("Failed to read response data", "err", err)
-		return err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		s.slogger.Error("Token request failed", "status", res.Status, "body", string(data))
-		return fmt.Errorf("token request failed: %s - %s", res.Status, string(data))
+	if status != http.StatusOK {
+		return fmt.Errorf("token request failed: %d - %s", status, string(data))
 	}
 
 	var tokenResponse models.AuthTokenResponse
@@ -138,41 +123,25 @@ func (s *SpotifyService) RefreshAccessToken(refreshToken string) error {
 	form.Add("refresh_token", refreshToken)
 	form.Add("client_id", config.AppConfig.Spotify.ClientId)
 
-	req, err := http.NewRequest("POST", "https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()))
-	if err != nil {
-		s.slogger.Error("Failed to construct user profile request", "err", err)
-		return err
-	}
-
 	clientIdAndSecret := fmt.Sprintf("%s:%s", config.AppConfig.Spotify.ClientId, config.AppConfig.Spotify.ClientSecret)
 	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
 
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", authHeaderValue))
+	headers := map[string][]string{
+		"Authorization": {fmt.Sprintf("Basic %s", authHeaderValue)},
+	}
 
-	res, err := http.DefaultClient.Do(req)
+	data, status, err := http_utils.PostForm("https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
 	if err != nil {
-		s.slogger.Error("Failed to get user profile", "err", err)
 		return err
 	}
 
-	defer res.Body.Close()
-
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.slogger.Error("Failed to read response data", "err", err)
-		return err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		s.slogger.Error("Token request failed", "status", res.Status, "body", string(data))
-		return fmt.Errorf("token request failed: %s - %s", res.Status, string(data))
+	if status != http.StatusOK {
+		return fmt.Errorf("token request failed: %d - %s", status, string(data))
 	}
 
 	var tokenResponse models.AuthTokenResponse
 	err = json.Unmarshal(data, &tokenResponse)
 	if err != nil {
-		s.slogger.Error("Failed to unmarshal response", "err", err)
 		return err
 	}
 
