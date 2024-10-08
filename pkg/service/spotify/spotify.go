@@ -31,6 +31,7 @@ func New(db *ent.Client) *SpotifyService {
 func (s *SpotifyService) GetUserProfile() (models.SpotifyUserProfile, error) {
 	token, err := s.GetAccessToken()
 	if err != nil {
+		// TODO we are logging this twice, here and where the service is used. Do we need to log here?
 		s.slogger.Error("Failed to get access token", "err", err)
 		return models.SpotifyUserProfile{}, err
 	}

@@ -43,6 +43,7 @@ var filteredQueryParams = [...]string{
 func New(area string, level slog.Level) *Logger {
 	logLevel := new(slog.LevelVar)
 	logLevel.Set(level)
+
 	slogger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: logLevel,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -87,7 +88,6 @@ func (l *Logger) Verbose(msg string, args ...any) {
 	l.slogger.Log(ctx, LevelVerbose, msg, args...)
 }
 
-// TODO fix issue with trace logging after config was loaded
 func (l *Logger) Trace(msg string, args ...any) {
 	ctx := context.Background()
 	l.slogger.Log(ctx, LevelTrace, msg, args...)
