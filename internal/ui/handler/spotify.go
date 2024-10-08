@@ -24,9 +24,17 @@ func NewSpotifyHandler(spotifyService *spotify.SpotifyService) *SpotifyHandler {
 func (s *SpotifyHandler) SpotifyAuthCallbackPage(c echo.Context) error {
 	code := c.QueryParams().Get("code")
 	state := c.QueryParams().Get("state")
-	if code != "" && state != "" {
-		s.slogger.Verbose("Spotify Code", "code", code)
-		s.spotifyService.GetAuthToken(code, state)
+
+	if code == "" || state == "" {
+		c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth?error=code_or_state")
+		return nil
+	}
+
+	err := s.spotifyService.HandleAuthCallback(code, state)
+	if err != nil {
+		s.slogger.Error("error handling auth callback", "err", err)
+		c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth?error=get_access_token")
+		return nil
 	}
 
 	c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth")
@@ -34,18 +42,24 @@ func (s *SpotifyHandler) SpotifyAuthCallbackPage(c echo.Context) error {
 }
 
 func (s *SpotifyHandler) SpotifyAuthPage(c echo.Context) error {
-	// profile, err := s.spotifyService.GetUserProfile()
-	// if err != nil {
-	// 	s.slogger.Error("Failed to load user profile. Not authenticated?", "err", err)
-	// }
-
-	// s.slogger.Verbose("Profile", "profile", profile)
-
 	spotifyAuthUrl := s.spotifyService.GetAuthUrl()
+	authError := c.QueryParams().Get("error")
+
+	profile, err := s.spotifyService.GetUserProfile()
+	if err != nil {
+		s.slogger.Error("Failed to load user profile. Not authenticated?", "err", err)
+
+		return c.Render(http.StatusOK, "spotify_auth", map[string]any{
+			"Title":          "Spotify Settings | Spotify Backup",
+			"SpotifyAuthUrl": spotifyAuthUrl,
+			"HasError":       authError,
+		})
+	}
 
 	return c.Render(http.StatusOK, "spotify_auth", map[string]any{
 		"Title":          "Spotify Settings | Spotify Backup",
 		"SpotifyAuthUrl": spotifyAuthUrl,
-		// "Profile":        profile,
+		"HasError":       authError,
+		"Profile":        profile,
 	})
 }

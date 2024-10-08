@@ -3,7 +3,9 @@ package logger
 import (
 	"context"
 	"log/slog"
+	"net/url"
 	"os"
+	"slices"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -31,6 +33,11 @@ var LevelNames = map[slog.Leveler]string{
 	LevelWarn:    "WARN",
 	LevelError:   "ERROR",
 	LevelFatal:   "FATAL",
+}
+
+var filteredQueryParams = [...]string{
+	"code",
+	"state",
 }
 
 func New(area string, level slog.Level) *Logger {
@@ -105,16 +112,29 @@ func GetEchoLogger() echo.MiddlewareFunc {
 		LogError:    true,
 		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			parsedUrl, err := url.Parse(v.URI)
+			if err != nil {
+				return err
+			}
+
+			query := parsedUrl.Query()
+			for key := range query {
+				if slices.Contains(filteredQueryParams[:], key) {
+					query[key] = []string{"REDACTED"}
+				}
+			}
+			parsedUrl.RawQuery = query.Encode()
+
 			if v.Error == nil {
 				logger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
 					slog.String("method", v.Method),
-					slog.String("uri", v.URI),
+					slog.String("uri", parsedUrl.RequestURI()),
 					slog.Int("status", v.Status),
 				)
 			} else {
 				logger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
 					slog.String("method", v.Method),
-					slog.String("uri", v.URI),
+					slog.String("uri", parsedUrl.RequestURI()),
 					slog.Int("status", v.Status),
 					slog.String("err", v.Error.Error()),
 				)

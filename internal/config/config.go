@@ -10,9 +10,10 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server" env:"SERVER"`
-	Database DatabaseConfig `mapstructure:"database" env:"DB"`
-	Spotify  SpotifyConfig  `mapstructure:"spotify" env:"SPOTIFY"`
+	Server        ServerConfig   `mapstructure:"server" env:"SERVER"`
+	Database      DatabaseConfig `mapstructure:"database" env:"DB"`
+	Spotify       SpotifyConfig  `mapstructure:"spotify" env:"SPOTIFY"`
+	EncryptionKey string         `mapstructure:"encryption_key" env:"ENCRYPTION_KEY"`
 }
 
 type ServerConfig struct {

@@ -5,6 +5,7 @@ import (
 	"beyerleinf/spotify-backup/internal/api/handler"
 	"beyerleinf/spotify-backup/internal/api/router"
 	"beyerleinf/spotify-backup/internal/config"
+	"beyerleinf/spotify-backup/internal/global"
 	"beyerleinf/spotify-backup/internal/ui"
 	uiHandler "beyerleinf/spotify-backup/internal/ui/handler"
 	uiRouter "beyerleinf/spotify-backup/internal/ui/router"
@@ -14,6 +15,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -30,6 +33,8 @@ func main() {
 	}
 
 	slog.SetLogLevel(config.AppConfig.Server.LogLevel)
+
+	createStorageDir(slog)
 
 	dbUrl := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
 		config.AppConfig.Database.Host,
@@ -86,4 +91,22 @@ func main() {
 
 	slog.Info(fmt.Sprintf("Starting server on [::]:%d", config.AppConfig.Server.Port))
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.AppConfig.Server.Port)))
+}
+
+func createStorageDir(slogger *logger.Logger) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		slogger.Fatal("Error getting home directory", "err", err)
+		panic(1)
+	}
+
+	storageDir := filepath.Join(homeDir, global.StorageDir)
+
+	err = os.MkdirAll(storageDir, 0755)
+	if err != nil {
+		slogger.Fatal("Failed to create storage dir", "err", err)
+		panic(1)
+	}
+
+	slogger.Verbose(fmt.Sprintf("Storage directory at %s created/exists.", storageDir))
 }
