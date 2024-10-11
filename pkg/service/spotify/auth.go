@@ -101,7 +101,10 @@ func (s *SpotifyService) GetAccessToken() (string, error) {
 	}
 
 	if token != nil && time.Now().After(token.ExpiresAt) {
-		s.RefreshAccessToken(token.RefreshToken)
+		err := s.RefreshAccessToken(token.RefreshToken)
+		if err != nil {
+			return "", err
+		}
 
 		tokenMutex.RLock()
 		token = authToken

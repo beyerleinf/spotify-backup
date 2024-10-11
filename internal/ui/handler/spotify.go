@@ -26,18 +26,31 @@ func (s *SpotifyHandler) SpotifyAuthCallbackPage(c echo.Context) error {
 	state := c.QueryParams().Get("state")
 
 	if code == "" || state == "" {
-		c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth?error=code_or_state")
+		err := c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth?error=code_or_state")
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
 	err := s.spotifyService.HandleAuthCallback(code, state)
 	if err != nil {
 		s.slogger.Error("error handling auth callback", "err", err)
-		c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth?error=get_access_token")
+
+		err = c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth?error=get_access_token")
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
-	c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth")
+	err = c.Redirect(http.StatusTemporaryRedirect, "/ui/spotify/auth")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
