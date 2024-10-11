@@ -6,12 +6,12 @@ import (
 	"beyerleinf/spotify-backup/internal/api/router"
 	"beyerleinf/spotify-backup/internal/config"
 	"beyerleinf/spotify-backup/internal/global"
-	"beyerleinf/spotify-backup/internal/ui"
 	uiHandler "beyerleinf/spotify-backup/internal/ui/handler"
 	uiRouter "beyerleinf/spotify-backup/internal/ui/router"
 	uiTmpl "beyerleinf/spotify-backup/internal/ui/template"
 	logger "beyerleinf/spotify-backup/pkg/log"
 	"beyerleinf/spotify-backup/pkg/service/spotify"
+	"beyerleinf/spotify-backup/web"
 	"context"
 	"fmt"
 	"log"
@@ -73,13 +73,13 @@ func main() {
 		router.HealthRoutes(healthHandler),
 	)
 
-	renderer, err := uiTmpl.NewRenderer(ui.PublicFS)
+	renderer, err := uiTmpl.NewRenderer(web.TemplatesFS)
 	if err != nil {
 		slog.Fatal("Failed to initialize renderer", "err", err)
 	}
 
 	e.Renderer = renderer
-	e.StaticFS("/", ui.StaticFS)
+	e.StaticFS("/", web.StaticFS)
 
 	spotifyService := spotify.New(client)
 
