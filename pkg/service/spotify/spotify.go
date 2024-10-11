@@ -15,14 +15,16 @@ type SpotifyService struct {
 	db          *ent.Client
 	state       string
 	redirectUri string
+	storageDir  string
 }
 
-func New(db *ent.Client) *SpotifyService {
+func New(db *ent.Client, storageDir string) *SpotifyService {
 	return &SpotifyService{
 		slogger:     logger.New("spotify", config.AppConfig.Server.LogLevel.Level()),
 		db:          db,
 		state:       util.GenerateRandomString(16),
 		redirectUri: fmt.Sprintf("%s/ui/spotify/callback", config.AppConfig.Spotify.RedirectUri),
+		storageDir:  storageDir,
 	}
 }
 

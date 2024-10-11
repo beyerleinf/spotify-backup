@@ -23,8 +23,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
+const StorageDir = ".spotify-backup"
+
 func main() {
-	slog := logger.New("main", logger.LevelInfo)
+	slogger := logger.New("main", logger.LevelInfo)
 
 	err := config.LoadConfig()
 	if err != nil {
@@ -32,9 +34,9 @@ func main() {
 		panic(err)
 	}
 
-	slog.SetLogLevel(config.AppConfig.Server.LogLevel)
+	slogger.SetLogLevel(config.AppConfig.Server.LogLevel)
 
-	createStorageDir(slog)
+	createStorageDir(slogger)
 
 	dbUrl := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
 		config.AppConfig.Database.Host,
@@ -46,17 +48,24 @@ func main() {
 
 	client, err := ent.Open("postgres", dbUrl)
 	if err != nil {
-		slog.Fatal("Failed opening connection to postgres", "err", err)
+		slogger.Fatal("Failed opening connection to postgres", "err", err)
 		panic(err)
 	}
 	defer client.Close()
 
 	if err := client.Schema.Create(context.Background()); err != nil {
-		slog.Fatal("Failed creating schema resources", "err", err)
+		slogger.Fatal("Failed creating schema resources", "err", err)
 		panic(err)
 	}
 
-	slog.Info("Connected to database")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		slogger.Error("Error getting home directory", "err", err)
+	}
+
+	storageDir := filepath.Join(homeDir, StorageDir)
+
+	slogger.Info("Connected to database")
 
 	healthHandler := handler.NewHealthHandler(client)
 
@@ -75,13 +84,13 @@ func main() {
 
 	renderer, err := uiTmpl.NewRenderer(web.TemplatesFS)
 	if err != nil {
-		slog.Fatal("Failed to initialize renderer", "err", err)
+		slogger.Fatal("Failed to initialize renderer", "err", err)
 	}
 
 	e.Renderer = renderer
 	e.StaticFS("/", web.StaticFS)
 
-	spotifyService := spotify.New(client)
+	spotifyService := spotify.New(client, storageDir)
 
 	spotifyHandler := uiHandler.NewSpotifyHandler(spotifyService)
 
@@ -89,7 +98,7 @@ func main() {
 		uiRouter.SpotifyRoutes(spotifyHandler),
 	)
 
-	slog.Info(fmt.Sprintf("Starting server on [::]:%d", config.AppConfig.Server.Port))
+	slogger.Info(fmt.Sprintf("Starting server on [::]:%d", config.AppConfig.Server.Port))
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.AppConfig.Server.Port)))
 }
 

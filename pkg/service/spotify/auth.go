@@ -2,7 +2,6 @@ package spotify
 
 import (
 	"beyerleinf/spotify-backup/internal/config"
-	"beyerleinf/spotify-backup/internal/global"
 	http_utils "beyerleinf/spotify-backup/pkg/http"
 	"crypto/aes"
 	"crypto/cipher"
@@ -176,12 +175,7 @@ func (s *SpotifyService) saveToken() {
 		return
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		s.slogger.Error("Error getting home directory", "err", err)
-	}
-
-	tokenPath := filepath.Join(homeDir, global.StorageDir, tokenFile)
+	tokenPath := filepath.Join(s.storageDir, tokenFile)
 
 	err = os.WriteFile(tokenPath, encryptedData, 0600)
 	if err != nil {
@@ -191,12 +185,7 @@ func (s *SpotifyService) saveToken() {
 }
 
 func (s *SpotifyService) loadToken() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		s.slogger.Error("Error getting home directory", "err", err)
-	}
-
-	tokenPath := filepath.Join(homeDir, global.StorageDir, tokenFile)
+	tokenPath := filepath.Join(s.storageDir, tokenFile)
 
 	encryptedData, err := os.ReadFile(tokenPath)
 	if err != nil {
