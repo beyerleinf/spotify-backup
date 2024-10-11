@@ -1,7 +1,7 @@
 package config
 
 import (
-	logger "beyerleinf/spotify-backup/pkg/log"
+	"beyerleinf/spotify-backup/pkg/logger"
 	"fmt"
 	goslog "log/slog"
 	"strings"
@@ -35,9 +35,7 @@ type SpotifyConfig struct {
 	RedirectUri  string `mapstructure:"redirect_uri" env:"REDIRECT_URI"`
 }
 
-var AppConfig Config
-
-func LoadConfig() error {
+func LoadConfig() (*Config, error) {
 	slog := logger.New("config", logger.LevelTrace)
 
 	viper.SetConfigName("config")
@@ -61,16 +59,17 @@ func LoadConfig() error {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			slog.Warn("No config file found. Using environment variables.")
 		} else {
-			return fmt.Errorf("error reading config file: %w", err)
+			return &Config{}, fmt.Errorf("error reading config file: %w", err)
 		}
 	}
 
-	err := viper.Unmarshal(&AppConfig)
+	var config Config
+	err := viper.Unmarshal(&config)
 	if err != nil {
-		return fmt.Errorf("unable to decode into struct: %w", err)
+		return &Config{}, fmt.Errorf("unable to decode into struct: %w", err)
 	}
 
-	slog.Trace("Loaded config", "config", AppConfig)
+	slog.Trace("Loaded config", "config", config)
 
-	return nil
+	return &config, nil
 }

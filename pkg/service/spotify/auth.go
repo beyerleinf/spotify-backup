@@ -1,7 +1,6 @@
 package spotify
 
 import (
-	"beyerleinf/spotify-backup/internal/config"
 	http_utils "beyerleinf/spotify-backup/pkg/http"
 	"crypto/aes"
 	"crypto/cipher"
@@ -29,7 +28,7 @@ func (s *SpotifyService) GetAuthUrl() string {
 	scope := url.QueryEscape("playlist-read-private user-read-private")
 
 	return fmt.Sprintf("https://accounts.spotify.com/authorize?response_type=code&client_id=%s&scope=%s&redirect_uri=%s&state=%s",
-		config.AppConfig.Spotify.ClientId, scope, url.QueryEscape(s.redirectUri), s.state,
+		s.config.Spotify.ClientId, scope, url.QueryEscape(s.redirectUri), s.state,
 	)
 }
 
@@ -43,7 +42,7 @@ func (s *SpotifyService) HandleAuthCallback(code string, state string) error {
 	form.Add("code", code)
 	form.Add("redirect_uri", s.redirectUri)
 
-	clientIdAndSecret := fmt.Sprintf("%s:%s", config.AppConfig.Spotify.ClientId, config.AppConfig.Spotify.ClientSecret)
+	clientIdAndSecret := fmt.Sprintf("%s:%s", s.config.Spotify.ClientId, s.config.Spotify.ClientSecret)
 	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
 
 	headers := map[string][]string{
@@ -122,9 +121,9 @@ func (s *SpotifyService) RefreshAccessToken(refreshToken string) error {
 	form := url.Values{}
 	form.Add("grant_type", "refresh_token")
 	form.Add("refresh_token", refreshToken)
-	form.Add("client_id", config.AppConfig.Spotify.ClientId)
+	form.Add("client_id", s.config.Spotify.ClientId)
 
-	clientIdAndSecret := fmt.Sprintf("%s:%s", config.AppConfig.Spotify.ClientId, config.AppConfig.Spotify.ClientSecret)
+	clientIdAndSecret := fmt.Sprintf("%s:%s", s.config.Spotify.ClientId, s.config.Spotify.ClientSecret)
 	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
 
 	headers := map[string][]string{
@@ -214,7 +213,7 @@ func (s *SpotifyService) loadToken() {
 }
 
 func (s *SpotifyService) encryptToken(data []byte) ([]byte, error) {
-	block, err := aes.NewCipher([]byte(config.AppConfig.EncryptionKey))
+	block, err := aes.NewCipher([]byte(s.config.EncryptionKey))
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +232,7 @@ func (s *SpotifyService) encryptToken(data []byte) ([]byte, error) {
 }
 
 func (s *SpotifyService) decryptToken(data []byte) ([]byte, error) {
-	block, err := aes.NewCipher([]byte(config.AppConfig.EncryptionKey))
+	block, err := aes.NewCipher([]byte(s.config.EncryptionKey))
 	if err != nil {
 		return nil, err
 	}

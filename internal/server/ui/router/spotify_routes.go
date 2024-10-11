@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"beyerleinf/spotify-backup/internal/api/router"
-	handler "beyerleinf/spotify-backup/internal/ui/handler"
+	"beyerleinf/spotify-backup/internal/server/ui/handler"
+	"beyerleinf/spotify-backup/pkg/router"
 
 	"github.com/labstack/echo/v4"
 )

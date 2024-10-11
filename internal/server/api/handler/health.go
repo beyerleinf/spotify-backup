@@ -2,8 +2,8 @@ package handler
 
 import (
 	"beyerleinf/spotify-backup/ent"
-	"beyerleinf/spotify-backup/internal/config"
-	logger "beyerleinf/spotify-backup/pkg/log"
+	"beyerleinf/spotify-backup/internal/server/config"
+	"beyerleinf/spotify-backup/pkg/logger"
 	"context"
 	"fmt"
 	"net/http"
@@ -14,12 +14,14 @@ import (
 type HealthHandler struct {
 	slogger *logger.Logger
 	db      *ent.Client
+	config  *config.Config
 }
 
-func NewHealthHandler(db *ent.Client) *HealthHandler {
+func NewHealthHandler(db *ent.Client, config *config.Config) *HealthHandler {
 	return &HealthHandler{
-		slogger: logger.New("health-check", config.AppConfig.Server.LogLevel),
+		slogger: logger.New("health-check", config.Server.LogLevel),
 		db:      db,
+		config:  config,
 	}
 }
 

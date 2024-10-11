@@ -2,14 +2,14 @@ package main
 
 import (
 	"beyerleinf/spotify-backup/ent"
-	"beyerleinf/spotify-backup/internal/api/handler"
-	"beyerleinf/spotify-backup/internal/api/router"
-	"beyerleinf/spotify-backup/internal/config"
-	"beyerleinf/spotify-backup/internal/global"
-	uiHandler "beyerleinf/spotify-backup/internal/ui/handler"
-	uiRouter "beyerleinf/spotify-backup/internal/ui/router"
-	uiTmpl "beyerleinf/spotify-backup/internal/ui/template"
-	logger "beyerleinf/spotify-backup/pkg/log"
+	"beyerleinf/spotify-backup/internal/server/api/handler"
+	apiRouter "beyerleinf/spotify-backup/internal/server/api/router"
+	"beyerleinf/spotify-backup/internal/server/config"
+	uiHandler "beyerleinf/spotify-backup/internal/server/ui/handler"
+	uiRouter "beyerleinf/spotify-backup/internal/server/ui/router"
+	uiTmpl "beyerleinf/spotify-backup/internal/server/ui/template"
+	"beyerleinf/spotify-backup/pkg/logger"
+	"beyerleinf/spotify-backup/pkg/router"
 	"beyerleinf/spotify-backup/pkg/service/spotify"
 	"beyerleinf/spotify-backup/web"
 	"context"
@@ -28,25 +28,25 @@ const StorageDir = ".spotify-backup"
 func main() {
 	slogger := logger.New("main", logger.LevelInfo)
 
-	err := config.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalln("Failed to load config: %w", err)
 		panic(err)
 	}
 
-	slogger.SetLogLevel(config.AppConfig.Server.LogLevel)
+	slogger.SetLogLevel(cfg.Server.LogLevel)
 
-	createStorageDir(slogger)
+	storageDir := createStorageDir(slogger)
 
-	dbUrl := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
-		config.AppConfig.Database.Host,
-		config.AppConfig.Database.Port,
-		config.AppConfig.Database.Username,
-		config.AppConfig.Database.DBName,
-		config.AppConfig.Database.Password,
+	dbURL := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Username,
+		cfg.Database.DBName,
+		cfg.Database.Password,
 	)
 
-	client, err := ent.Open("postgres", dbUrl)
+	client, err := ent.Open("postgres", dbURL)
 	if err != nil {
 		slogger.Fatal("Failed opening connection to postgres", "err", err)
 		panic(err)
@@ -58,16 +58,9 @@ func main() {
 		panic(err)
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		slogger.Error("Error getting home directory", "err", err)
-	}
-
-	storageDir := filepath.Join(homeDir, StorageDir)
-
 	slogger.Info("Connected to database")
 
-	healthHandler := handler.NewHealthHandler(client)
+	healthHandler := handler.NewHealthHandler(client, cfg)
 
 	e := echo.New()
 	e.HideBanner = true
@@ -79,7 +72,7 @@ func main() {
 	uiBase := e.Group("/ui")
 
 	router.SetupRoutes(apiBase,
-		router.HealthRoutes(healthHandler),
+		apiRouter.HealthRoutes(healthHandler),
 	)
 
 	renderer, err := uiTmpl.NewRenderer(web.TemplatesFS)
@@ -90,26 +83,25 @@ func main() {
 	e.Renderer = renderer
 	e.StaticFS("/", web.StaticFS)
 
-	spotifyService := spotify.New(client, storageDir)
+	spotifyService := spotify.New(client, cfg, storageDir)
 
-	spotifyHandler := uiHandler.NewSpotifyHandler(spotifyService)
+	spotifyHandler := uiHandler.NewSpotifyHandler(spotifyService, cfg)
 
 	router.SetupRoutes(uiBase,
 		uiRouter.SpotifyRoutes(spotifyHandler),
 	)
 
-	slogger.Info(fmt.Sprintf("Starting server on [::]:%d", config.AppConfig.Server.Port))
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.AppConfig.Server.Port)))
+	slogger.Info(fmt.Sprintf("Starting server on [::]:%d", cfg.Server.Port))
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", cfg.Server.Port)))
 }
 
-func createStorageDir(slogger *logger.Logger) {
+func createStorageDir(slogger *logger.Logger) string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		slogger.Fatal("Error getting home directory", "err", err)
-		panic(1)
+		slogger.Error("Error getting home directory", "err", err)
 	}
 
-	storageDir := filepath.Join(homeDir, global.StorageDir)
+	storageDir := filepath.Join(homeDir, StorageDir)
 
 	err = os.MkdirAll(storageDir, 0755)
 	if err != nil {
@@ -117,5 +109,7 @@ func createStorageDir(slogger *logger.Logger) {
 		panic(1)
 	}
 
-	slogger.Verbose(fmt.Sprintf("Storage directory at %s created/exists.", storageDir))
+	slogger.Verbose(fmt.Sprintf("Using storage directory at %s.", storageDir))
+
+	return storageDir
 }

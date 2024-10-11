@@ -1,8 +1,8 @@
-package ui
+package handler
 
 import (
-	"beyerleinf/spotify-backup/internal/config"
-	logger "beyerleinf/spotify-backup/pkg/log"
+	"beyerleinf/spotify-backup/internal/server/config"
+	"beyerleinf/spotify-backup/pkg/logger"
 	"beyerleinf/spotify-backup/pkg/service/spotify"
 	"net/http"
 
@@ -12,12 +12,16 @@ import (
 type SpotifyHandler struct {
 	slogger        *logger.Logger
 	spotifyService *spotify.SpotifyService
+	config         *config.Config
 }
 
-func NewSpotifyHandler(spotifyService *spotify.SpotifyService) *SpotifyHandler {
+const pageTitle = "Spotify Settings | Spotify Backup"
+
+func NewSpotifyHandler(spotifyService *spotify.SpotifyService, config *config.Config) *SpotifyHandler {
 	return &SpotifyHandler{
-		slogger:        logger.New("spotify-ui", config.AppConfig.Server.LogLevel),
+		slogger:        logger.New("spotify-ui", config.Server.LogLevel),
 		spotifyService: spotifyService,
+		config:         config,
 	}
 }
 
@@ -63,14 +67,14 @@ func (s *SpotifyHandler) SpotifyAuthPage(c echo.Context) error {
 		s.slogger.Error("Failed to load user profile. Not authenticated?", "err", err)
 
 		return c.Render(http.StatusOK, "spotify_auth", map[string]any{
-			"Title":          "Spotify Settings | Spotify Backup",
+			"Title":          pageTitle,
 			"SpotifyAuthUrl": spotifyAuthUrl,
 			"HasError":       authError,
 		})
 	}
 
 	return c.Render(http.StatusOK, "spotify_auth", map[string]any{
-		"Title":          "Spotify Settings | Spotify Backup",
+		"Title":          pageTitle,
 		"SpotifyAuthUrl": spotifyAuthUrl,
 		"HasError":       authError,
 		"Profile":        profile,
