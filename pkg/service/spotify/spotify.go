@@ -3,52 +3,56 @@ package spotify
 import (
 	"beyerleinf/spotify-backup/ent"
 	"beyerleinf/spotify-backup/internal/server/config"
-	http_utils "beyerleinf/spotify-backup/pkg/http"
 	"beyerleinf/spotify-backup/pkg/logger"
+	"beyerleinf/spotify-backup/pkg/request"
 	util "beyerleinf/spotify-backup/pkg/util"
 	"encoding/json"
 	"fmt"
 )
 
-type SpotifyService struct {
+// A Service instance.
+type Service struct {
 	slogger     *logger.Logger
 	db          *ent.Client
 	config      *config.Config
 	state       string
-	redirectUri string
+	redirectURI string
 	storageDir  string
 }
 
-func New(db *ent.Client, config *config.Config, storageDir string) *SpotifyService {
-	return &SpotifyService{
+// New creates a [Service] instance.
+func New(db *ent.Client, config *config.Config, storageDir string) *Service {
+	return &Service{
 		slogger:     logger.New("spotify", config.Server.LogLevel.Level()),
 		db:          db,
 		state:       util.GenerateRandomString(16),
-		redirectUri: fmt.Sprintf("%s/ui/spotify/callback", config.Spotify.RedirectUri),
+		redirectURI: fmt.Sprintf("%s/ui/spotify/callback", config.Spotify.RedirectURI),
 		storageDir:  storageDir,
 		config:      config,
 	}
 }
 
-func (s *SpotifyService) GetUserProfile() (SpotifyUserProfile, error) {
+// GetUserProfile returns a [UserProfile] from Spotify's API.
+// [Get User Profile API]: https://developer.spotify.com/documentation/web-api/reference/get-current-users-profile
+func (s *Service) GetUserProfile() (UserProfile, error) {
 	token, err := s.GetAccessToken()
 	if err != nil {
-		return SpotifyUserProfile{}, err
+		return UserProfile{}, err
 	}
 
 	headers := map[string][]string{
 		"Authorization": {fmt.Sprintf("Bearer %s", token)},
 	}
 
-	data, _, err := http_utils.Get("https://api.spotify.com/v1/me", headers)
+	data, _, err := request.Get("https://api.spotify.com/v1/me", headers)
 	if err != nil {
-		return SpotifyUserProfile{}, err
+		return UserProfile{}, err
 	}
 
-	var profile SpotifyUserProfile
+	var profile UserProfile
 	err = json.Unmarshal(data, &profile)
 	if err != nil {
-		return SpotifyUserProfile{}, err
+		return UserProfile{}, err
 	}
 
 	return profile, nil

@@ -1,10 +1,11 @@
-package http_utils
+package request
 
 import (
 	"io"
 	"net/http"
 )
 
+// Post sends a POST request.
 func Post(url string, body io.Reader, headers map[string][]string) ([]byte, int, error) {
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
@@ -28,6 +29,7 @@ func Post(url string, body io.Reader, headers map[string][]string) ([]byte, int,
 	return data, res.StatusCode, nil
 }
 
+// PostForm sends a POST request with a application/x-www-form-urlencoded body.
 func PostForm(url string, body io.Reader, headers map[string][]string) ([]byte, int, error) {
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
@@ -52,6 +54,7 @@ func PostForm(url string, body io.Reader, headers map[string][]string) ([]byte, 
 	return data, res.StatusCode, nil
 }
 
+// Get sends a GET request.
 func Get(url string, headers map[string][]string) ([]byte, int, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

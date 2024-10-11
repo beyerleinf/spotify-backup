@@ -1,7 +1,7 @@
 package spotify
 
 import (
-	http_utils "beyerleinf/spotify-backup/pkg/http"
+	"beyerleinf/spotify-backup/pkg/request"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -24,15 +24,20 @@ const tokenFile = "token.bin"
 
 var authToken *AuthToken
 
-func (s *SpotifyService) GetAuthUrl() string {
+// GetAuthURL returns a URL to redirect a user to sign in with Spotify.
+func (s *Service) GetAuthURL() string {
 	scope := url.QueryEscape("playlist-read-private user-read-private")
 
 	return fmt.Sprintf("https://accounts.spotify.com/authorize?response_type=code&client_id=%s&scope=%s&redirect_uri=%s&state=%s",
-		s.config.Spotify.ClientId, scope, url.QueryEscape(s.redirectUri), s.state,
+		s.config.Spotify.ClientID, scope, url.QueryEscape(s.redirectURI), s.state,
 	)
 }
 
-func (s *SpotifyService) HandleAuthCallback(code string, state string) error {
+// HandleAuthCallback handles a callback request from Spotify's Auth API.
+// It takes a code and the state used to initiate the authentication flow
+// and follows Spotify's requirements to request an Access Token.
+// [Spotify Authorization Code Flow]: https://developer.spotify.com/documentation/web-api/tutorials/code-flow
+func (s *Service) HandleAuthCallback(code string, state string) error {
 	if state != s.state {
 		return fmt.Errorf("state mismatch")
 	}
@@ -40,16 +45,16 @@ func (s *SpotifyService) HandleAuthCallback(code string, state string) error {
 	form := url.Values{}
 	form.Add("grant_type", "authorization_code")
 	form.Add("code", code)
-	form.Add("redirect_uri", s.redirectUri)
+	form.Add("redirect_uri", s.redirectURI)
 
-	clientIdAndSecret := fmt.Sprintf("%s:%s", s.config.Spotify.ClientId, s.config.Spotify.ClientSecret)
-	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
+	clientIDAndSecret := fmt.Sprintf("%s:%s", s.config.Spotify.ClientID, s.config.Spotify.ClientSecret)
+	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIDAndSecret))
 
 	headers := map[string][]string{
 		"Authorization": {fmt.Sprintf("Basic %s", authHeaderValue)},
 	}
 
-	data, status, err := http_utils.PostForm("https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
+	data, status, err := request.PostForm("https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
 	if err != nil {
 		return err
 	}
@@ -80,7 +85,10 @@ func (s *SpotifyService) HandleAuthCallback(code string, state string) error {
 	return nil
 }
 
-func (s *SpotifyService) GetAccessToken() (string, error) {
+// GetAccessToken tries to read the current Access Token from an encrypted file
+// on disk. If that fails or of the Access Token expired, it will request
+// a new Access Token using [RefreshAccessToken].
+func (s *Service) GetAccessToken() (string, error) {
 	tokenMutex.RLock()
 	token := authToken
 	tokenMutex.RUnlock()
@@ -111,26 +119,30 @@ func (s *SpotifyService) GetAccessToken() (string, error) {
 	}
 
 	if token == nil {
-		return "", &SpotifyUnauthenticatedError{}
+		return "", &UnauthenticatedError{}
 	}
 
 	return "", fmt.Errorf("something went wrong")
 }
 
-func (s *SpotifyService) RefreshAccessToken(refreshToken string) error {
+// RefreshAccessToken makes a call to Spotify's Authentication API using
+// the Refresh Token obtained on the last authentication request.
+// It will request a new Access Token using the Refresh Token.
+// [Refreshing Tokens]: https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens
+func (s *Service) RefreshAccessToken(refreshToken string) error {
 	form := url.Values{}
 	form.Add("grant_type", "refresh_token")
 	form.Add("refresh_token", refreshToken)
-	form.Add("client_id", s.config.Spotify.ClientId)
+	form.Add("client_id", s.config.Spotify.ClientID)
 
-	clientIdAndSecret := fmt.Sprintf("%s:%s", s.config.Spotify.ClientId, s.config.Spotify.ClientSecret)
-	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
+	clientIDAndSecret := fmt.Sprintf("%s:%s", s.config.Spotify.ClientID, s.config.Spotify.ClientSecret)
+	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIDAndSecret))
 
 	headers := map[string][]string{
 		"Authorization": {fmt.Sprintf("Basic %s", authHeaderValue)},
 	}
 
-	data, status, err := http_utils.PostForm("https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
+	data, status, err := request.PostForm("https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
 	if err != nil {
 		return err
 	}
@@ -158,7 +170,7 @@ func (s *SpotifyService) RefreshAccessToken(refreshToken string) error {
 	return nil
 }
 
-func (s *SpotifyService) saveToken() {
+func (s *Service) saveToken() {
 	tokenMutex.RLock()
 	defer tokenMutex.RUnlock()
 
@@ -183,7 +195,7 @@ func (s *SpotifyService) saveToken() {
 	}
 }
 
-func (s *SpotifyService) loadToken() {
+func (s *Service) loadToken() {
 	tokenPath := filepath.Join(s.storageDir, tokenFile)
 
 	encryptedData, err := os.ReadFile(tokenPath)
@@ -212,7 +224,7 @@ func (s *SpotifyService) loadToken() {
 	tokenMutex.Unlock()
 }
 
-func (s *SpotifyService) encryptToken(data []byte) ([]byte, error) {
+func (s *Service) encryptToken(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher([]byte(s.config.EncryptionKey))
 	if err != nil {
 		return nil, err
@@ -231,7 +243,7 @@ func (s *SpotifyService) encryptToken(data []byte) ([]byte, error) {
 	return gcm.Seal(nonce, nonce, data, nil), nil
 }
 
-func (s *SpotifyService) decryptToken(data []byte) ([]byte, error) {
+func (s *Service) decryptToken(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher([]byte(s.config.EncryptionKey))
 	if err != nil {
 		return nil, err

@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// SpotifyRoutes returns all routes associated with the /spotify route.
 func SpotifyRoutes(spotifyHandler *handler.SpotifyHandler) router.RouteGroup {
 	return router.RouteGroup{
 		Prefix: "/spotify",
@@ -14,7 +15,7 @@ func SpotifyRoutes(spotifyHandler *handler.SpotifyHandler) router.RouteGroup {
 			{
 				Method:  echo.GET,
 				Path:    "/auth",
-				Handler: spotifyHandler.SpotifyAuthPage,
+				Handler: spotifyHandler.SpotifySettingsPage,
 			},
 			{
 				Method:  echo.GET,

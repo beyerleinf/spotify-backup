@@ -1,0 +1,34 @@
+{{ define "spotify_settings" }}
+<!DOCTYPE html>
+<html lang="en">
+  {{ template "header.html" . }}
+
+  <body class="bg-base p-4">
+    <h1 class="text-4xl mb-4 text text-text">Spotify Settings</h1>
+    <a
+      role="button"
+      href="{{ .AuthURL }}"
+      class="py-1 px-2 rounded-md bg-lavender hover:bg-mauve active:bg-mauve/75"
+    >
+      Authenticate with Spotify
+    </a>
+
+    <div class="mt-4 flex flex-col">
+      {{ if (eq .Profile nil) }}
+      <div class="text-text text-2xl">Not signed in</div>
+      {{ end }} {{ if not (eq .Profile nil) }}
+      <h1 class="text-2xl mb-2 text text-text">Profile</h1>
+
+      <div class="flex flex-row mt-2 items-center gap-4">
+        <img
+          src="{{ (index .Profile.Images 0).Url }}"
+          alt="Profile Picture"
+          class="rounded-full"
+        />
+        <span class="text-text text-xl">{{ .Profile.DisplayName }}</span>
+      </div>
+      {{ end }}
+    </div>
+  </body>
+</html>
+{{ end }}

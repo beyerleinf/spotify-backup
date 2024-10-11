@@ -1,7 +1,9 @@
 package spotify
 
-type SpotifyUnauthenticatedError struct{}
+// A UnauthenticatedError is returned when Authentication
+// with the Spotify API failed.
+type UnauthenticatedError struct{}
 
-func (e *SpotifyUnauthenticatedError) Error() string {
+func (e *UnauthenticatedError) Error() string {
 	return "Authentication with Spotify failed! Try signing into your Account again."
 }

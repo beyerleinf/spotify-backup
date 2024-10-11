@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// A TemplateRenderer instance.
 type TemplateRenderer struct {
 	Templates    *template.Template
 	BuildVersion string

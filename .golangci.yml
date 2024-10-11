@@ -1,0 +1,5 @@
+linters:
+  enable:
+    - misspell
+    - perfsprint
+    - noctx

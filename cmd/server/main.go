@@ -23,7 +23,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const StorageDir = ".spotify-backup"
+const storageDir = ".spotify-backup"
 
 func main() {
 	slogger := logger.New("main", logger.LevelInfo)
@@ -101,15 +101,15 @@ func createStorageDir(slogger *logger.Logger) string {
 		slogger.Error("Error getting home directory", "err", err)
 	}
 
-	storageDir := filepath.Join(homeDir, StorageDir)
+	dir := filepath.Join(homeDir, storageDir)
 
-	err = os.MkdirAll(storageDir, 0755)
+	err = os.MkdirAll(dir, 0755)
 	if err != nil {
 		slogger.Fatal("Failed to create storage dir", "err", err)
 		panic(1)
 	}
 
-	slogger.Verbose(fmt.Sprintf("Using storage directory at %s.", storageDir))
+	slogger.Verbose(fmt.Sprintf("Using storage directory at %s.", dir))
 
-	return storageDir
+	return dir
 }

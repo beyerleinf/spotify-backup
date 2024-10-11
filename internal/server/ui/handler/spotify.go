@@ -9,15 +9,17 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// A SpotifyHandler instance.
 type SpotifyHandler struct {
 	slogger        *logger.Logger
-	spotifyService *spotify.SpotifyService
+	spotifyService *spotify.Service
 	config         *config.Config
 }
 
 const pageTitle = "Spotify Settings | Spotify Backup"
 
-func NewSpotifyHandler(spotifyService *spotify.SpotifyService, config *config.Config) *SpotifyHandler {
+// NewSpotifyHandler creates a new instance.
+func NewSpotifyHandler(spotifyService *spotify.Service, config *config.Config) *SpotifyHandler {
 	return &SpotifyHandler{
 		slogger:        logger.New("spotify-ui", config.Server.LogLevel),
 		spotifyService: spotifyService,
@@ -25,6 +27,7 @@ func NewSpotifyHandler(spotifyService *spotify.SpotifyService, config *config.Co
 	}
 }
 
+// SpotifyAuthCallbackPage handles callback requests from Spotify's Authentication API.
 func (s *SpotifyHandler) SpotifyAuthCallbackPage(c echo.Context) error {
 	code := c.QueryParams().Get("code")
 	state := c.QueryParams().Get("state")
@@ -58,25 +61,28 @@ func (s *SpotifyHandler) SpotifyAuthCallbackPage(c echo.Context) error {
 	return nil
 }
 
-func (s *SpotifyHandler) SpotifyAuthPage(c echo.Context) error {
-	spotifyAuthUrl := s.spotifyService.GetAuthUrl()
+// SpotifySettingsPage serves the Spotify settings page.
+func (s *SpotifyHandler) SpotifySettingsPage(c echo.Context) error {
+	const templateName = "spotify_settings"
+
+	authURL := s.spotifyService.GetAuthURL()
 	authError := c.QueryParams().Get("error")
 
 	profile, err := s.spotifyService.GetUserProfile()
 	if err != nil {
 		s.slogger.Error("Failed to load user profile. Not authenticated?", "err", err)
 
-		return c.Render(http.StatusOK, "spotify_auth", map[string]any{
-			"Title":          pageTitle,
-			"SpotifyAuthUrl": spotifyAuthUrl,
-			"HasError":       authError,
+		return c.Render(http.StatusOK, templateName, map[string]any{
+			"Title":    pageTitle,
+			"AuthURL":  authURL,
+			"HasError": authError,
 		})
 	}
 
-	return c.Render(http.StatusOK, "spotify_auth", map[string]any{
-		"Title":          pageTitle,
-		"SpotifyAuthUrl": spotifyAuthUrl,
-		"HasError":       authError,
-		"Profile":        profile,
+	return c.Render(http.StatusOK, templateName, map[string]any{
+		"Title":    pageTitle,
+		"AuthURL":  authURL,
+		"HasError": authError,
+		"Profile":  profile,
 	})
 }

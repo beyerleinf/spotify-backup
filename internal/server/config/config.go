@@ -3,12 +3,13 @@ package config
 import (
 	"beyerleinf/spotify-backup/pkg/logger"
 	"fmt"
-	goslog "log/slog"
+	"log/slog"
 	"strings"
 
 	"github.com/spf13/viper"
 )
 
+// Config is the root level configuration struct.
 type Config struct {
 	Server        ServerConfig   `mapstructure:"server" env:"SERVER"`
 	Database      DatabaseConfig `mapstructure:"database" env:"DB"`
@@ -16,11 +17,13 @@ type Config struct {
 	EncryptionKey string         `mapstructure:"encryption_key" env:"ENCRYPTION_KEY"`
 }
 
+// ServerConfig contains setting relating to the http server and the application in general.
 type ServerConfig struct {
-	Port     int          `mapstructure:"port" env:"PORT"`
-	LogLevel goslog.Level `mapstructure:"loglevel" env:"LOGLEVEL"`
+	Port     int        `mapstructure:"port" env:"PORT"`
+	LogLevel slog.Level `mapstructure:"loglevel" env:"LOGLEVEL"`
 }
 
+// DatabaseConfig contains all database related settings.
 type DatabaseConfig struct {
 	Host     string `mapstructure:"host" env:"HOST"`
 	Port     int    `mapstructure:"port" env:"PORT"`
@@ -29,14 +32,16 @@ type DatabaseConfig struct {
 	DBName   string `mapstructure:"db_name" env:"NAME"`
 }
 
+// SpotifyConfig contains all Spotify API related settings.
 type SpotifyConfig struct {
-	ClientId     string `mapstructure:"client_id" env:"CLIENT_ID"`
+	ClientID     string `mapstructure:"client_id" env:"CLIENT_ID"`
 	ClientSecret string `mapstructure:"client_secret" env:"CLIENT_SECRET"`
-	RedirectUri  string `mapstructure:"redirect_uri" env:"REDIRECT_URI"`
+	RedirectURI  string `mapstructure:"redirect_uri" env:"REDIRECT_URI"`
 }
 
+// LoadConfig uses viper to load the configuration file.
 func LoadConfig() (*Config, error) {
-	slog := logger.New("config", logger.LevelTrace)
+	slogger := logger.New("config", logger.LevelTrace)
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -57,7 +62,7 @@ func LoadConfig() (*Config, error) {
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			slog.Warn("No config file found. Using environment variables.")
+			slogger.Warn("No config file found. Using environment variables.")
 		} else {
 			return &Config{}, fmt.Errorf("error reading config file: %w", err)
 		}
@@ -69,7 +74,7 @@ func LoadConfig() (*Config, error) {
 		return &Config{}, fmt.Errorf("unable to decode into struct: %w", err)
 	}
 
-	slog.Trace("Loaded config", "config", config)
+	slogger.Trace("Loaded config", "config", config)
 
 	return &config, nil
 }

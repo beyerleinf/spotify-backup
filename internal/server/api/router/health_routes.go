@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// HealthRoutes returns all routes associated with the /health route.
 func HealthRoutes(healthHandler *handler.HealthHandler) router.RouteGroup {
 	return router.RouteGroup{
 		Prefix: "/health",
