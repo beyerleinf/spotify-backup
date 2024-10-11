@@ -2,11 +2,13 @@ package spotify
 
 import (
 	"beyerleinf/spotify-backup/pkg/request"
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -38,8 +40,10 @@ func (s *Service) GetAuthURL() string {
 // and follows Spotify's requirements to request an Access Token.
 // [Spotify Authorization Code Flow]: https://developer.spotify.com/documentation/web-api/tutorials/code-flow
 func (s *Service) HandleAuthCallback(code string, state string) error {
+	ctx := context.Background()
+
 	if state != s.state {
-		return fmt.Errorf("state mismatch")
+		return errors.New("state mismatch")
 	}
 
 	form := url.Values{}
@@ -51,10 +55,10 @@ func (s *Service) HandleAuthCallback(code string, state string) error {
 	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIDAndSecret))
 
 	headers := map[string][]string{
-		"Authorization": {fmt.Sprintf("Basic %s", authHeaderValue)},
+		"Authorization": {"Basic " + authHeaderValue},
 	}
 
-	data, status, err := request.PostForm("https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
+	data, status, err := request.PostForm(ctx, "https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
 	if err != nil {
 		return err
 	}
@@ -122,7 +126,7 @@ func (s *Service) GetAccessToken() (string, error) {
 		return "", &UnauthenticatedError{}
 	}
 
-	return "", fmt.Errorf("something went wrong")
+	return "", errors.New("something went wrong")
 }
 
 // RefreshAccessToken makes a call to Spotify's Authentication API using
@@ -130,6 +134,8 @@ func (s *Service) GetAccessToken() (string, error) {
 // It will request a new Access Token using the Refresh Token.
 // [Refreshing Tokens]: https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens
 func (s *Service) RefreshAccessToken(refreshToken string) error {
+	ctx := context.Background()
+
 	form := url.Values{}
 	form.Add("grant_type", "refresh_token")
 	form.Add("refresh_token", refreshToken)
@@ -139,10 +145,10 @@ func (s *Service) RefreshAccessToken(refreshToken string) error {
 	authHeaderValue := base64.StdEncoding.EncodeToString([]byte(clientIDAndSecret))
 
 	headers := map[string][]string{
-		"Authorization": {fmt.Sprintf("Basic %s", authHeaderValue)},
+		"Authorization": {"Basic " + authHeaderValue},
 	}
 
-	data, status, err := request.PostForm("https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
+	data, status, err := request.PostForm(ctx, "https://accounts.spotify.com/api/token", strings.NewReader(form.Encode()), headers)
 	if err != nil {
 		return err
 	}
@@ -256,7 +262,7 @@ func (s *Service) decryptToken(data []byte) ([]byte, error) {
 
 	nonceSize := gcm.NonceSize()
 	if len(data) < nonceSize {
-		return nil, fmt.Errorf("ciphertext too short")
+		return nil, errors.New("ciphertext too short")
 	}
 
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]

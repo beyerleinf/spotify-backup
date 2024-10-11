@@ -1,13 +1,14 @@
 package request
 
 import (
+	"context"
 	"io"
 	"net/http"
 )
 
 // Post sends a POST request.
-func Post(url string, body io.Reader, headers map[string][]string) ([]byte, int, error) {
-	req, err := http.NewRequest("POST", url, body)
+func Post(ctx context.Context, url string, body io.Reader, headers map[string][]string) ([]byte, int, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -30,8 +31,8 @@ func Post(url string, body io.Reader, headers map[string][]string) ([]byte, int,
 }
 
 // PostForm sends a POST request with a application/x-www-form-urlencoded body.
-func PostForm(url string, body io.Reader, headers map[string][]string) ([]byte, int, error) {
-	req, err := http.NewRequest("POST", url, body)
+func PostForm(ctx context.Context, url string, body io.Reader, headers map[string][]string) ([]byte, int, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -55,8 +56,8 @@ func PostForm(url string, body io.Reader, headers map[string][]string) ([]byte, 
 }
 
 // Get sends a GET request.
-func Get(url string, headers map[string][]string) ([]byte, int, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func Get(ctx context.Context, url string, headers map[string][]string) ([]byte, int, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, 0, err
 	}

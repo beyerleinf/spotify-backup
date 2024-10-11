@@ -6,8 +6,8 @@ import (
 	"beyerleinf/spotify-backup/pkg/logger"
 	"beyerleinf/spotify-backup/pkg/request"
 	util "beyerleinf/spotify-backup/pkg/util"
+	"context"
 	"encoding/json"
-	"fmt"
 )
 
 // A Service instance.
@@ -26,7 +26,7 @@ func New(db *ent.Client, config *config.Config, storageDir string) *Service {
 		slogger:     logger.New("spotify", config.Server.LogLevel.Level()),
 		db:          db,
 		state:       util.GenerateRandomString(16),
-		redirectURI: fmt.Sprintf("%s/ui/spotify/callback", config.Spotify.RedirectURI),
+		redirectURI: config.Spotify.RedirectURI + "/ui/spotify/callback",
 		storageDir:  storageDir,
 		config:      config,
 	}
@@ -35,16 +35,18 @@ func New(db *ent.Client, config *config.Config, storageDir string) *Service {
 // GetUserProfile returns a [UserProfile] from Spotify's API.
 // [Get User Profile API]: https://developer.spotify.com/documentation/web-api/reference/get-current-users-profile
 func (s *Service) GetUserProfile() (UserProfile, error) {
+	ctx := context.Background()
+
 	token, err := s.GetAccessToken()
 	if err != nil {
 		return UserProfile{}, err
 	}
 
 	headers := map[string][]string{
-		"Authorization": {fmt.Sprintf("Bearer %s", token)},
+		"Authorization": {"Bearer " + token},
 	}
 
-	data, _, err := request.Get("https://api.spotify.com/v1/me", headers)
+	data, _, err := request.Get(ctx, "https://api.spotify.com/v1/me", headers)
 	if err != nil {
 		return UserProfile{}, err
 	}
