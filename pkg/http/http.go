@@ -29,7 +29,6 @@ func Post(url string, body io.Reader, headers map[string][]string) ([]byte, int,
 }
 
 func PostForm(url string, body io.Reader, headers map[string][]string) ([]byte, int, error) {
-
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, 0, err

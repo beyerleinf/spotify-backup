@@ -13,3 +13,6 @@ run:
 
 tidy:
   go mod tidy
+
+build APP:
+	go build -o cmd/{{APP}}/bin/{{APP}} cmd/{{APP}}/main.go 
