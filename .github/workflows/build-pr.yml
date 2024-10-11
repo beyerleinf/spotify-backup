@@ -18,8 +18,7 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - name: "Install dependencies"
-        run: |
-          go get .
+        run: "go mod download"
       - name: "Lint"
         uses: golangci/golangci-lint-action@v6
         with:
