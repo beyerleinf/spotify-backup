@@ -4,7 +4,6 @@ import (
 	"beyerleinf/spotify-backup/internal/config"
 	"beyerleinf/spotify-backup/internal/global"
 	http_utils "beyerleinf/spotify-backup/pkg/http"
-	"beyerleinf/spotify-backup/pkg/models"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -25,7 +24,7 @@ var tokenMutex sync.RWMutex
 
 const tokenFile = "token.bin"
 
-var authToken *models.AuthToken
+var authToken *AuthToken
 
 func (s *SpotifyService) GetAuthUrl() string {
 	scope := url.QueryEscape("playlist-read-private user-read-private")
@@ -61,7 +60,7 @@ func (s *SpotifyService) HandleAuthCallback(code string, state string) error {
 		return fmt.Errorf("token request failed: %d - %s", status, string(data))
 	}
 
-	var tokenResponse models.AuthTokenResponse
+	var tokenResponse AuthTokenResponse
 	err = json.Unmarshal(data, &tokenResponse)
 	if err != nil {
 		s.slogger.Error("Failed to unmarshal response", "err", err)
@@ -69,7 +68,7 @@ func (s *SpotifyService) HandleAuthCallback(code string, state string) error {
 	}
 
 	tokenMutex.Lock()
-	authToken = &models.AuthToken{
+	authToken = &AuthToken{
 		AccessToken:  tokenResponse.AccessToken,
 		RefreshToken: tokenResponse.RefreshToken,
 		ExpiresAt:    time.Now().Add(time.Second * time.Duration(tokenResponse.ExpiresIn)),
@@ -142,14 +141,14 @@ func (s *SpotifyService) RefreshAccessToken(refreshToken string) error {
 		return fmt.Errorf("token request failed: %d - %s", status, string(data))
 	}
 
-	var tokenResponse models.AuthTokenResponse
+	var tokenResponse AuthTokenResponse
 	err = json.Unmarshal(data, &tokenResponse)
 	if err != nil {
 		return err
 	}
 
 	tokenMutex.Lock()
-	authToken = &models.AuthToken{
+	authToken = &AuthToken{
 		AccessToken:  tokenResponse.AccessToken,
 		RefreshToken: tokenResponse.RefreshToken,
 		ExpiresAt:    time.Now().Add(time.Second * time.Duration(tokenResponse.ExpiresIn)),
@@ -213,7 +212,7 @@ func (s *SpotifyService) loadToken() {
 		return
 	}
 
-	var token models.AuthToken
+	var token AuthToken
 	err = json.Unmarshal(decryptedData, &token)
 	if err != nil {
 		s.slogger.Error("Error unmarshaling auth token", "err", err)

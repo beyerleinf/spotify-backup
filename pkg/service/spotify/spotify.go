@@ -5,7 +5,6 @@ import (
 	"beyerleinf/spotify-backup/internal/config"
 	http_utils "beyerleinf/spotify-backup/pkg/http"
 	logger "beyerleinf/spotify-backup/pkg/log"
-	"beyerleinf/spotify-backup/pkg/models"
 	util "beyerleinf/spotify-backup/pkg/util"
 	"encoding/json"
 	"fmt"
@@ -27,10 +26,10 @@ func New(db *ent.Client) *SpotifyService {
 	}
 }
 
-func (s *SpotifyService) GetUserProfile() (models.SpotifyUserProfile, error) {
+func (s *SpotifyService) GetUserProfile() (SpotifyUserProfile, error) {
 	token, err := s.GetAccessToken()
 	if err != nil {
-		return models.SpotifyUserProfile{}, err
+		return SpotifyUserProfile{}, err
 	}
 
 	headers := map[string][]string{
@@ -39,13 +38,13 @@ func (s *SpotifyService) GetUserProfile() (models.SpotifyUserProfile, error) {
 
 	data, _, err := http_utils.Get("https://api.spotify.com/v1/me", headers)
 	if err != nil {
-		return models.SpotifyUserProfile{}, err
+		return SpotifyUserProfile{}, err
 	}
 
-	var profile models.SpotifyUserProfile
+	var profile SpotifyUserProfile
 	err = json.Unmarshal(data, &profile)
 	if err != nil {
-		return models.SpotifyUserProfile{}, err
+		return SpotifyUserProfile{}, err
 	}
 
 	return profile, nil
