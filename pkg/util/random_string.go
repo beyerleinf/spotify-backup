@@ -13,7 +13,7 @@ func init() {
 }
 
 // GenerateRandomString generates a random string in an efficient way.
-// @see https://stackoverflow.com/a/31832326/6335286
+// [Source]: https://stackoverflow.com/a/31832326/6335286
 func GenerateRandomString(n int) string {
 	b := make([]byte, n)
 	for i := range b {
