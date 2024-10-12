@@ -32,27 +32,9 @@ func Post(ctx context.Context, url string, body io.Reader, headers map[string][]
 
 // PostForm sends a POST request with a application/x-www-form-urlencoded body.
 func PostForm(ctx context.Context, url string, body io.Reader, headers map[string][]string) ([]byte, int, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
-	if err != nil {
-		return nil, 0, err
-	}
+	headers["Content-Type"] = []string{"application/x-www-form-urlencoded"}
 
-	req.Header = headers
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	defer res.Body.Close()
-
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return data, res.StatusCode, nil
+	return Post(ctx, url, body, headers)
 }
 
 // Get sends a GET request.
