@@ -31,3 +31,23 @@ type AuthToken struct {
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`
 }
+
+// GetPlaylistsResponse is the response of the get playlists endpoint
+type GetPlaylistsResponse struct {
+	Limit  int        `json:"limit"`
+	Offset int        `json:"offset"`
+	Next   string     `json:"next"`
+	Total  int        `json:"total"`
+	Items  []Playlist `json:"items"`
+}
+
+// A Playlist represents a Spotify Playlist.
+type Playlist struct {
+	ID            string  `json:"id"`
+	Collaborative bool    `json:"collaborative"`
+	Public        bool    `json:"public"`
+	Description   string  `json:"description"`
+	Name          string  `json:"name"`
+	TotalTracks   int     `json:"tracks.total"`
+	Images        []Image `json:"images"`
+}
