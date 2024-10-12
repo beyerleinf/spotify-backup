@@ -83,7 +83,7 @@ func main() {
 	e.Renderer = renderer
 	e.StaticFS("/", web.StaticFS)
 
-	spotifyService := spotify.New(client, cfg, storageDir)
+	spotifyService := spotify.New(cfg, storageDir)
 
 	spotifyHandler := uiHandler.NewSpotifyHandler(spotifyService, cfg)
 

@@ -1,7 +1,6 @@
 package spotify
 
 import (
-	"beyerleinf/spotify-backup/ent"
 	"beyerleinf/spotify-backup/internal/server/config"
 	"beyerleinf/spotify-backup/pkg/logger"
 	"beyerleinf/spotify-backup/pkg/request"
@@ -13,7 +12,6 @@ import (
 // A Service instance.
 type Service struct {
 	slogger     *logger.Logger
-	db          *ent.Client
 	config      *config.Config
 	state       string
 	redirectURI string
@@ -21,10 +19,9 @@ type Service struct {
 }
 
 // New creates a [Service] instance.
-func New(db *ent.Client, config *config.Config, storageDir string) *Service {
+func New(config *config.Config, storageDir string) *Service {
 	return &Service{
 		slogger:     logger.New("spotify", config.Server.LogLevel.Level()),
-		db:          db,
 		state:       util.GenerateRandomString(16),
 		redirectURI: config.Spotify.RedirectURI + "/ui/spotify/callback",
 		storageDir:  storageDir,

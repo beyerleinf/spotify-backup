@@ -29,7 +29,7 @@ var authToken *AuthToken
 
 // GetAuthURL returns a URL to redirect a user to sign in with Spotify.
 func (s *Service) GetAuthURL() string {
-	scope := url.QueryEscape("playlist-read-private user-read-private")
+	scope := url.QueryEscape("user-read-private playlist-read-private")
 
 	return fmt.Sprintf("https://accounts.spotify.com/authorize?response_type=code&client_id=%s&scope=%s&redirect_uri=%s&state=%s",
 		s.config.Spotify.ClientID, scope, url.QueryEscape(s.redirectURI), s.state,
