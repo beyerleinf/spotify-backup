@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"beyerleinf/spotify-backup/pkg/assert"
 	"beyerleinf/spotify-backup/pkg/request"
 	"context"
 	"crypto/aes"
@@ -78,7 +79,7 @@ func (s *Service) HandleAuthCallback(code string, state string) error {
 	authToken = &AuthToken{
 		AccessToken:  tokenResponse.AccessToken,
 		RefreshToken: tokenResponse.RefreshToken,
-		ExpiresAt:    time.Now().Add(time.Second * time.Duration(tokenResponse.ExpiresIn)),
+		ExpiresAt:    s.calculateExpiresAt(tokenResponse.ExpiresIn),
 	}
 	tokenMutex.Unlock()
 
@@ -106,10 +107,15 @@ func (s *Service) GetAccessToken() (string, error) {
 	}
 
 	if token != nil && time.Now().Before(token.ExpiresAt) {
+		assert.NotEqual("", token.AccessToken, "existing access token should not be an empty string")
+		assert.NotNil(token.AccessToken, "existing access token is nil")
+
 		return token.AccessToken, nil
 	}
 
 	if token != nil && time.Now().After(token.ExpiresAt) {
+		assert.NotEqual("", token.RefreshToken, "stored refresh token should not be an empty string")
+
 		err := s.RefreshAccessToken(token.RefreshToken)
 		if err != nil {
 			return "", err
@@ -119,6 +125,9 @@ func (s *Service) GetAccessToken() (string, error) {
 		token = authToken
 		tokenMutex.RUnlock()
 
+		assert.NotEqual("", token.AccessToken, "new access token should not be an empty string")
+		assert.NotNil(token.AccessToken, "new access token is nil")
+
 		return token.AccessToken, nil
 	}
 
@@ -126,6 +135,7 @@ func (s *Service) GetAccessToken() (string, error) {
 		return "", &UnauthenticatedError{}
 	}
 
+	assert.Assert(true, "We should not have reached this")
 	return "", errors.New("something went wrong")
 }
 
@@ -134,6 +144,8 @@ func (s *Service) GetAccessToken() (string, error) {
 // It will request a new Access Token using the Refresh Token.
 // [Refreshing Tokens]: https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens
 func (s *Service) RefreshAccessToken(refreshToken string) error {
+	assert.NotEqual("", refreshToken, "RefreshToken should not be an empty string")
+
 	ctx := context.Background()
 
 	form := url.Values{}
@@ -163,12 +175,18 @@ func (s *Service) RefreshAccessToken(refreshToken string) error {
 		return err
 	}
 
+	assert.NotEqual("", tokenResponse.AccessToken, "AccessToken should not be empty")
+	assert.NotNil(tokenResponse.ExpiresIn, "ExpiresAt should not be nil")
+
 	tokenMutex.Lock()
-	authToken = &AuthToken{
-		AccessToken:  tokenResponse.AccessToken,
-		RefreshToken: tokenResponse.RefreshToken,
-		ExpiresAt:    time.Now().Add(time.Second * time.Duration(tokenResponse.ExpiresIn)),
+
+	authToken.AccessToken = tokenResponse.AccessToken
+	authToken.ExpiresAt = s.calculateExpiresAt(tokenResponse.ExpiresIn)
+
+	if tokenResponse.RefreshToken != "" {
+		authToken.RefreshToken = tokenResponse.RefreshToken
 	}
+
 	tokenMutex.Unlock()
 
 	s.saveToken()
@@ -179,6 +197,10 @@ func (s *Service) RefreshAccessToken(refreshToken string) error {
 func (s *Service) saveToken() {
 	tokenMutex.RLock()
 	defer tokenMutex.RUnlock()
+
+	assert.NotEqual("", authToken.AccessToken, "AccessToken should not be empty")
+	assert.NotNil(authToken.ExpiresAt, "ExpiresAt should not be nil")
+	assert.NotEqual("", authToken.RefreshToken, "RefreshToken should not be empty")
 
 	jsonData, err := json.Marshal(authToken)
 	if err != nil {
@@ -204,6 +226,11 @@ func (s *Service) saveToken() {
 func (s *Service) loadToken() {
 	tokenPath := filepath.Join(s.storageDir, tokenFile)
 
+	_, err := os.Stat(tokenPath)
+	if err != nil {
+		return
+	}
+
 	encryptedData, err := os.ReadFile(tokenPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -211,6 +238,8 @@ func (s *Service) loadToken() {
 		}
 		return
 	}
+
+	assert.NotEqual(0, len(encryptedData), "token file exists but is empty")
 
 	decryptedData, err := s.decryptToken(encryptedData)
 	if err != nil {
@@ -224,6 +253,10 @@ func (s *Service) loadToken() {
 		s.slogger.Error("Error unmarshaling auth token", "err", err)
 		return
 	}
+
+	assert.NotEqual("", token.AccessToken, "AccessToken should not be empty")
+	assert.NotNil(token.ExpiresAt, "ExpiresAt should not be nil")
+	assert.NotEqual("", token.RefreshToken, "RefreshToken should not be empty")
 
 	tokenMutex.Lock()
 	authToken = &token
@@ -267,4 +300,8 @@ func (s *Service) decryptToken(data []byte) ([]byte, error) {
 
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
 	return gcm.Open(nil, nonce, ciphertext, nil)
+}
+
+func (s *Service) calculateExpiresAt(expiresIn int) time.Time {
+	return time.Now().Add(time.Second * time.Duration(expiresIn))
 }
