@@ -99,6 +99,7 @@ func createStorageDir(slogger *logger.Logger) string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		slogger.Error("Error getting home directory", "err", err)
+		panic(1)
 	}
 
 	dir := filepath.Join(homeDir, storageDir)

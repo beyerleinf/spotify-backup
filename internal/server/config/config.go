@@ -20,7 +20,7 @@ type Config struct {
 // ServerConfig contains setting relating to the http server and the application in general.
 type ServerConfig struct {
 	Port     int        `mapstructure:"port" env:"PORT"`
-	LogLevel slog.Level `mapstructure:"loglevel" env:"LOGLEVEL"`
+	LogLevel slog.Level `mapstructure:"log_level" env:"LOGLEVEL"`
 }
 
 // DatabaseConfig contains all database related settings.
